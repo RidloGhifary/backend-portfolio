@@ -19,31 +19,18 @@ app.get("/api/track", async (_, res) => {
     const { data } = await axios.get(`${process.env.GEO_API}/${ip}/json/`);
     const {
       ip: userIpAddress,
-      network,
       city,
       region,
       country_name,
       latitude,
       longitude,
-      org,
-      country_calling_code,
     } = data;
 
-    const visitorData = {
-      ip: userIpAddress,
-      network,
-      city,
-      region,
-      country_name,
-      latitude,
-      longitude,
-      org,
-      country_calling_code,
-      date: new Date().toISOString(),
-    };
-
     // Check if the Excel file exists
+    const currentDate = new Date().toISOString();
     const filePath = "./visitor_data.xlsx";
+
+    // Initialize workbook and worksheet
     let workbook;
     if (fs.existsSync(filePath)) {
       workbook = xlsx.readFile(filePath);
@@ -55,17 +42,38 @@ app.get("/api/track", async (_, res) => {
 
     // Get the first worksheet
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const dataVisitors = xlsx.utils.sheet_to_json(worksheet);
 
-    // Append new data to the worksheet
-    const workSheetData = xlsx.utils.sheet_to_json(worksheet);
-    workSheetData.push(visitorData);
-    const newWorksheet = xlsx.utils.json_to_sheet(workSheetData);
+    // Check if the visitor's IP already exists
+    const existingVisitor = dataVisitors.find(
+      (visitor) => visitor.ip === userIpAddress
+    );
+    if (existingVisitor) {
+      // Update the existing visitor's countVisited and date
+      existingVisitor.countVisited += 1;
+      existingVisitor.date = currentDate;
+    } else {
+      // Add a new visitor entry
+      dataVisitors.push({
+        userIpAddress,
+        city,
+        region,
+        latitude,
+        longitude,
+        country: country_name,
+        date: currentDate,
+        countVisited: 1,
+      });
+    }
+
+    // Convert JSON data back to worksheet
+    const newWorksheet = xlsx.utils.json_to_sheet(dataVisitors);
     workbook.Sheets[workbook.SheetNames[0]] = newWorksheet;
 
     // Write to the Excel file
     xlsx.writeFile(workbook, filePath);
 
-    res.status(204).send();
+    res.status(204).send(); // Send no content response
   } catch (error) {
     res.status(500).json({ error: "Something went wrong..." });
   }
