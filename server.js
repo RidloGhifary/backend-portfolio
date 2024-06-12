@@ -86,3 +86,5 @@ app.get("/api/track", async (_, res) => {
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
+
+export default app;
