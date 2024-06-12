@@ -11,6 +11,10 @@ require("dotenv").config();
 app.use(cors());
 app.set("trust proxy", true);
 
+app.get("/", (_, res) => {
+  res.send("Hello Welcome to my backend!");
+});
+
 app.get("/api/track", async (_, res) => {
   try {
     const ipAddress = await axios.get(process.env.IP_API_URL);
